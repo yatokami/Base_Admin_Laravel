@@ -3,8 +3,10 @@
 namespace App\Exceptions;
 
 use Exception;
+use GuzzleHttp\Exception\ClientException;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class Handler extends ExceptionHandler
 {
@@ -17,6 +19,7 @@ class Handler extends ExceptionHandler
         \Illuminate\Auth\AuthenticationException::class,
         \Illuminate\Auth\Access\AuthorizationException::class,
         \Symfony\Component\HttpKernel\Exception\HttpException::class,
+        \Symfony\Component\HttpKernel\Exception\NotFoundHttpException::class,
         \Illuminate\Database\Eloquent\ModelNotFoundException::class,
         \Illuminate\Session\TokenMismatchException::class,
         \Illuminate\Validation\ValidationException::class,
@@ -44,6 +47,15 @@ class Handler extends ExceptionHandler
      */
     public function render($request, Exception $exception)
     {
+        if ($exception instanceof NotFoundHttpException) {
+            return response()->json(['code' => '404', 'message' => '无法找到页面']);
+        }
+        if ($exception instanceof ClientException) {
+            return response()->json(['code' => '401', 'message' => '验证失败']);
+        }
+        if ($exception instanceof  AuthenticationException && $exception->getMessage() == "Unauthenticated.") {
+            return response()->json(['code' => '401', 'message' => '没有权限']);
+        }
         return parent::render($request, $exception);
     }
 

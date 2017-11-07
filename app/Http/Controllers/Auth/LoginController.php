@@ -4,6 +4,10 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Foundation\Auth\AuthenticatesUsers;
+use Illuminate\Http\Request;
+use App\User;
+use GuzzleHttp\Client;
+use Symfony\Component\HttpKernel\Exception\UnauthorizedHttpException;
 
 class LoginController extends Controller
 {
@@ -25,7 +29,7 @@ class LoginController extends Controller
      *
      * @var string
      */
-    protected $redirectTo = '/home';
+    //protected $redirectTo = '/home';
 
     /**
      * Create a new controller instance.
@@ -34,6 +38,48 @@ class LoginController extends Controller
      */
     public function __construct()
     {
-        $this->middleware('guest')->except('logout');
+       //$this->middleware('guest')->except('logout');
+    }
+
+    /**
+     * 获取登录TOKEN
+     * @param LoginRequest $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function token(Request $request)
+    {
+        
+        $username = $request->input('username');
+
+        $user = User::orWhere('username', $username)->first();
+        if ($user && ($user->nullity == 1)) {
+            return response()->json("账号已经被禁用");
+        }
+        
+        $http = new Client();
+        try {
+            $request = $http->request('POST', request()->root() . '/oauth/token', [
+                'form_params' => config('password') + $request->all()
+            ]);
+        } catch (RequestException $e) {
+            return response()->json("账号验证失败");
+        }
+
+        if ($request->getStatusCode() == 401) {
+            return response()->json("账号验证失败");
+        }
+        return json_decode((string) $request->getBody()->getContents(), true);
+    }
+
+     /**
+     * 退出登录
+     */
+    public function logout()
+    {
+        if (\Auth::guard('api')->check()) {
+            \Auth::guard('api')->user()->token()->delete();
+        }
+
+        return response()->json(['message' => '登出成功', 'status_code' => 200, 'data' => null]);
     }
 }
