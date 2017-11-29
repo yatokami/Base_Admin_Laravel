@@ -15,31 +15,34 @@ class MenuController extends Controller
      */
     public function index()
     {
-        $id = \Auth::guard('api')->user()->id;
+        $id = \Auth::guard('admin')->user()->agentid;
         // 调用目录查询存储过程
         $menu = DB::select("call Pro_SelectMenu($id)");
         $arr = [];
         $temp = $menu;
         $Menus = [];
-        // 去除查询出来的一级目录重复项
+        $menu2 = [];
+        $k = 0;
+        // 去除查询出来的一级目录重复项 
+
         for ($i = 0; $i < count($menu); $i++) { 
-            if (in_array($menu[$i]->parmenu, $arr) == 1) {
-                array_splice($menu,$i,1); //移除元素
-            } else {
+            if (in_array($menu[$i]->parmenu, $arr) != 1) {
+                $menu2[$k] = $menu[$i];
+                $k++;
                 array_push($arr, $menu[$i]->parmenu);
             }
         }
         // 给目录数组重新赋值
-        for ($j = 0; $j < count($menu); $j++) { 
-            $Menus[$j]["title"] = $menu[$j]->partitle;
-            $Menus[$j]["path"] = $menu[$j]->parpath;
+        for ($j = 0; $j < count($menu2); $j++) { 
+            $Menus[$j]["title"] = $menu2[$j]->partitle;
+            $Menus[$j]["path"] = $menu2[$j]->parpath;
             $Menus[$j]["nullity"] = $menu[$j]->parnullity;
-            $Menus[$j]["link"] = $menu[$j]->parlink;
-            $Menus[$j]["menu"] = $menu[$j]->parmenu;
-            $Menus[$j]["icon"] = $menu[$j]->paricon;
+            $Menus[$j]["link"] = $menu2[$j]->parlink;
+            $Menus[$j]["menu"] = $menu2[$j]->parmenu;
+            $Menus[$j]["icon"] = $menu2[$j]->paricon;
             $Menus[$j]["childs"] = [];
             for ($k = 0; $k < count($temp); $k++) { 
-                if ($temp[$k]->parmenu == $menu[$j]->parmenu) {
+                if ($temp[$k]->parmenu == $menu2[$j]->parmenu) {
                     array_push($Menus[$j]["childs"], $temp[$k]);// 属于一级目录的二级目录追加入一级目录下childs属性下
                 }
             }
